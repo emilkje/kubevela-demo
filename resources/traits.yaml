@@ -1,0 +1,100 @@
+apiVersion: core.oam.dev/v1beta1
+kind: TraitDefinition
+metadata:
+  annotations:
+    definition.oam.dev/description: "configure k8s HPA for Deployment"
+  name: autoscaler
+spec:
+  appliesToWorkloads:
+    - webservice
+  schematic:
+    cue:
+      template: |
+        parameter: {
+            min:     *2 | int
+            max:     *6 | int
+            cpuUtil: *80 | int
+        }
+
+        outputs: hpa: {
+          apiVersion: "autoscaling/v2beta2"
+          kind:       "HorizontalPodAutoscaler"
+          metadata: {
+            name: context.name
+            labels: {
+              "app.kubernetes.io/name": context.name + "-autoscaler"
+              "app.kubernetes.io/component": "autoscaler"
+              "app.kubernetes.io/part-of": context.name
+            }
+          }
+          spec: {
+            scaleTargetRef: {
+              apiVersion: "apps/v1"
+              kind:       "Deployment"
+              name:       context.name
+            }
+            minReplicas: parameter.min
+            maxReplicas: parameter.max
+            metrics: [{
+              type: "Resource"
+              resource: {
+                name: "cpu"
+                target: {
+                  type:               "Utilization"
+                  averageUtilization: parameter.cpuUtil
+                }
+              }
+            }]
+          }
+        }
+
+---
+
+apiVersion: core.oam.dev/v1beta1
+kind: TraitDefinition
+metadata:
+  name: route
+spec:
+  podDisruptive: false
+  appliesToWorkloads:
+    - webservice
+  schematic:
+    cue:
+      template: |
+        parameter: {
+          domain: string
+          http: [string]: int
+        }
+
+        outputs: ingress: {
+          apiVersion: "networking.k8s.io/v1"
+          kind:       "Ingress"
+          metadata:
+            name: context.name + "-ingress"
+            labels: {
+              "app.kubernetes.io/name":       context.name + "-ingress"
+              "app.kubernetes.io/component":  "ingress"
+              "app.kubernetes.io/part-of":    context.name
+            }
+          spec: {
+            rules: [{
+              host: parameter.domain
+              http: {
+                paths: [
+                  for k, v in parameter.http {
+                    path: k
+                    pathType: "ImplementationSpecific"
+                    backend: {
+                      service: {
+                        name: context.name
+                        port: {
+                          number: v
+                        }
+                      }
+                    }
+                  },
+                ]
+              }
+            }]
+          }
+        }

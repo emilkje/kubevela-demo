@@ -1,0 +1,12 @@
+name: sample
+
+services:
+  adminer: # 1st service
+    image: dockersamples/static-site
+    ports: 
+      - port: 80
+        expose: true
+    route: # trait
+      domain: sample.apps.v95.io
+      http:
+        "/": 80

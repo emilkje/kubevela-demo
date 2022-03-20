@@ -1,0 +1,41 @@
+apiVersion: core.oam.dev/v1beta1
+kind: Application
+metadata:
+  name: ntier
+spec:
+  components:
+    - name: adminer
+      type: webservice
+      properties:
+        image: adminer
+        ports: 
+          - port: 8080
+            expose: true
+        env:
+          - name: ADMINER_DEFAULT_DB_DRIVER
+            value: pgsql
+          - name: ADMINER_DEFAULT_DB_HOST
+            value: postgres.default.svc.cluster.local
+          - name: ADMINER_DEFAULT_DB_NAME
+            value: adminer
+      traits:
+        - type: route
+          properties:
+            domain: adminer.apps.v95.io
+            http:
+              "/": 8080
+
+    - name: postgres
+      type: webservice
+      properties:
+        image: postgres
+        ports:
+          - port: 5432
+            expose: true
+        env:
+          - name: POSTGRES_PASSWORD
+            value: adminer
+          - name: POSTGRES_DB
+            value: adminer
+          - name: POSTGRES_USER
+            value: adminer

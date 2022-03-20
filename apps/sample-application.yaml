@@ -1,0 +1,19 @@
+apiVersion: core.oam.dev/v1beta1
+kind: Application
+metadata:
+  name: sample
+spec:
+  components:
+    - name: simple-service
+      type: webservice
+      properties:
+        image: dockersamples/static-site
+        ports:
+          - port: 80
+            expose: true
+      traits:
+        - type: route
+          properties:
+            domain: sample.apps.v95.io
+            http:
+              "/": 80
